@@ -1,0 +1,23 @@
+✔ admission, exact proration, unique phone and confirmed payment enforcement (10.98182ms)
+✔ request replay creates one registration and altered payload is rejected (4.468882ms)
+✔ partial payments append, overpayment and pre-admission billing are rejected (4.697713ms)
+✔ attendance is one record per member per day; public name access denied (20.297053ms)
+✔ archiving preserves cash revenue and IDs are not reused (5.503444ms)
+✔ roles, revoked sessions and distinct staff PINs are enforced on server (2.54379ms)
+✔ stock and ledger commit atomically; stale price, oversell and repeat sale protected (2.869238ms)
+✔ UPI requires account setting and explicit payment confirmation (3.417549ms)
+✔ six calendar months, last attendance and month-end clamping (2.258388ms)
+✔ family phone sharing permits distinct people but rejects duplicate identity (2.821678ms)
+✔ legacy migration preserves IDs, aggregates and media, excludes plaintext PINs (4.24251ms)
+✔ migration refuses malformed records without partial writes (1.732111ms)
+✔ all full-page routes render with simulated Sheets API responses; browser persistence never used (476.026843ms)
+✔ bridge rejects wrong channels, origins, sources and forged responses (10.037852ms)
+✔ bundled logo is exact repository image; embedded scripts parse; paths are relative (4.915381ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1152.129372

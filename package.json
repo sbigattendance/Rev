@@ -1,0 +1,8 @@
+{
+  "name": "revive-fitness-studio-portal",
+  "version": "4.0.0",
+  "private": true,
+  "description": "GitHub Pages portal with Google Sheets backend",
+  "scripts": {"test": "node --test tests/*.test.cjs", "build": "python3 build.py"},
+  "devDependencies": {"jsdom": "26.1.0"}
+}
