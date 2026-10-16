@@ -29,15 +29,17 @@
         #app-wrapper { display: flex; flex-direction: column; min-height: 100vh; padding-top: 60px; padding-bottom: 60px; }
 
         .app-header {
-            background-color: var(--bg-panel); height: 60px; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-panel); height: 60px; padding: 0 1.25rem; display: flex; justify-content: center; align-items: center;
             border-bottom: 3px solid var(--accent-orange); position: fixed; top: 0; left: 0; width: 100%; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
         
-        .logo-container { cursor: pointer; display: flex; align-items: center; gap: 0.6rem; transition: transform 0.2s; height: 100%; font-weight: 900; font-size: 1.2rem; letter-spacing: 1px; color: var(--text-main); }
+        .logo-container { cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.6rem; transition: transform 0.2s; height: 100%; font-weight: 900; font-size: 1.2rem; letter-spacing: 1px; color: var(--text-main); }
         .logo-container:active { transform: scale(0.95); }
-        .logo-container img { height: 35px; object-fit: contain; }
-        .header-sync-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
-        .header-sync-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .logo-container img { height: 36px; object-fit: contain; }
+        .header-sync-btn { position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.25s ease; }
+        .header-sync-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); background: #fff5eb; transform: translateY(-50%) rotate(90deg); }
+        .header-sync-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        .sr-only-text { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
         .app-footer {
             background-color: var(--bg-panel); height: 42px; padding: 0 1.5rem; display: flex; justify-content: center; align-items: center;
@@ -240,15 +242,26 @@
         .modal-actions { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: stretch; margin-top: 1rem; }
 
         #receipt-render-zone { position: absolute; left: -9999px; top: 0; opacity: 0; pointer-events: none; z-index: -100; }
-        #receipt-template { width: 400px; padding: 25px; background: #ffffff; border: 3px solid var(--accent-orange); font-family: 'Segoe UI', Arial, sans-serif; color: #111; box-sizing: border-box; }
-        .rcpt-header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 15px; margin-bottom: 15px; }
-        .rcpt-header img { height: 45px; margin-bottom: 5px; }
-        .rcpt-address { font-size: 11px; color: #666; line-height: 1.4; }
-        .rcpt-title { margin: 15px 0 0 0; color: var(--accent-orange); font-size: 18px; letter-spacing: 2px; font-weight: 900; text-transform: uppercase;}
-        .rcpt-table { width: 100%; font-size: 13px; line-height: 2; border-collapse: collapse; }
-        .rcpt-table td { padding: 4px 0; }
-        .rcpt-amount-box { margin-top: 20px; padding: 15px; background: #fdfdfd; border-radius: 8px; border: 1px solid #eee; }
-        .rcpt-footer { text-align: center; font-size: 11px; color: #888; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+        #receipt-template { width: 460px; background: #ffffff; border: 2px solid #1e1e1e; border-radius: 14px; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111; box-sizing: border-box; box-shadow: 0 12px 35px rgba(0,0,0,0.12); }
+        .rcpt-top-banner { background: linear-gradient(135deg, #181818 0%, #2b2b2b 100%); color: #ffffff; padding: 22px 24px 18px 24px; text-align: center; border-bottom: 4px solid var(--accent-orange); position: relative; }
+        .rcpt-logo-pill { background: #ffffff; display: inline-flex; align-items: center; justify-content: center; padding: 6px 16px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+        .rcpt-logo-pill img { height: 38px; object-fit: contain; display: block; }
+        .rcpt-address { font-size: 11px; color: #d0d0d0; line-height: 1.45; font-weight: 500; }
+        .rcpt-badge-bar { display: flex; justify-content: space-between; align-items: center; background: #fff5eb; padding: 10px 24px; border-bottom: 1px dashed #ffcc99; font-size: 11.5px; font-weight: 800; color: #333; }
+        .rcpt-title { margin: 12px 0 0 0; color: var(--accent-orange); font-size: 15px; letter-spacing: 2.5px; font-weight: 900; text-transform: uppercase; }
+        .rcpt-body { padding: 20px 24px; }
+        .rcpt-hero-paid { background: linear-gradient(135deg, #f4fbf7 0%, #e8f8ef 100%); border: 1.5px solid #9fe3b8; border-radius: 12px; padding: 14px 18px; text-align: center; margin-bottom: 18px; }
+        .rcpt-hero-paid-lbl { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #2d6a4f; margin-bottom: 2px; }
+        .rcpt-hero-paid-val { font-size: 28px; font-weight: 900; color: #138a36; letter-spacing: 0.5px; line-height: 1.15; }
+        .rcpt-status-pill { display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 20px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.8px; text-transform: uppercase; background: #138a36; color: #fff; }
+        .rcpt-table { width: 100%; font-size: 12.5px; border-collapse: collapse; margin-bottom: 16px; }
+        .rcpt-table td { padding: 7px 4px; border-bottom: 1px solid #f0f0f0; }
+        .rcpt-table tr:last-child td { border-bottom: none; }
+        .rcpt-amount-box { padding: 14px 16px; background: #fafafa; border-radius: 10px; border: 1px solid #e6e6e6; }
+        .rcpt-sign-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 18px; padding-top: 14px; border-top: 1px dashed #d9d9d9; }
+        .rcpt-footer { text-align: center; font-size: 11px; color: #ffffff; background: #181818; padding: 12px 20px; font-weight: 700; letter-spacing: 0.5px; }
+        .rcpt-modal-preview-box { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; margin-bottom: 1rem; max-height: 360px; overflow-y: auto; display: flex; justify-content: center; }
+        .rcpt-modal-preview-box img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
 
         #pdf-template-wrapper { display: none; background: #e0e0e0; min-height: 100vh; width: 100vw; padding: 20px; justify-content: center; }
         #pdf-template { background: #ffffff; color: #111111; width: 210mm; height: 296mm; padding: 12mm 15mm; box-sizing: border-box; font-family: 'Helvetica', 'Arial', sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column; }
@@ -306,12 +319,12 @@
 
     <div id="app-wrapper">
         <header class="app-header">
-            <div style="width: 110px;"></div>
             <div class="logo-container" onclick="window.appContext.goHome()">
                 <img data-logo-src="logo.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%2250%22%20viewBox%3D%220%200%20220%2050%22%3E%3Crect%20width%3D%22220%22%20height%3D%2250%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2212%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23222222%22%3EREVIVE%20%3C%2Ftext%3E%3Ctext%20x%3D%22102%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23ff6600%22%3EFITNESS%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-logo-img" alt="REVIVE FITNESS STUDIO" onerror="this.onerror=null; this.src=window.FALLBACK_LOGO_SVG;">
             </div>
-            <button type="button" class="header-sync-btn" onclick="window.cloudSync.forceRefreshCache()" title="Clear stale cache & pull fresh cloud data">
-                ↻ Sync & Clear Cache
+            <button type="button" class="header-sync-btn" onclick="window.cloudSync.forceRefreshCache()" title="Sync & Refresh Cloud Data">
+                <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span class="sr-only-text">↻ Sync & Clear Cache</span>
             </button>
         </header>
 
@@ -1648,23 +1661,29 @@
         </div>
         
         <div id="receiptSuccessModal" class="modal">
-            <div class="modal-content">
-                <div class="checkmark-circle"><div class="checkmark-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div></div>
-                <h2 class="orange-text">Payment Recorded!</h2>
-                <p style="margin-bottom: 1.5rem;">Receipt has been generated and stamped with collector details.</p>
+            <div class="modal-content" style="max-width: 480px;">
+                <h2 class="orange-text" style="margin-top:0;">Payment Recorded!</h2>
+                <div class="rcpt-modal-preview-box">
+                    <img id="sr-preview-img" src="" alt="Generated Payment Receipt Preview">
+                </div>
                 <div class="modal-actions">
                     <button type="button" id="btn-share-receipt" onclick="window.moduleContext.shareReceipt('success')" class="btn whatsapp">Share Receipt Image</button>
+                    <button type="button" class="btn primary" onclick="window.moduleContext.downloadReceiptImageDirect()">⬇ Download Receipt Image</button>
                     <button type="button" class="btn secondary" onclick="document.getElementById('receiptSuccessModal').style.display='none'; window.appContext.switchView('user-hub');">Return to Profile</button>
                 </div>
             </div>
         </div>
 
         <div id="viewReceiptModal" class="modal">
-            <div class="modal-content">
-                <h2 class="orange-text">Payment Receipt</h2>
-                <p style="margin-bottom: 1.5rem;">Receipt for <span id="vr-month-label" style="font-weight:bold;"></span></p>
+            <div class="modal-content" style="max-width: 480px;">
+                <h2 class="orange-text" style="margin-top:0;">Official Payment Receipt</h2>
+                <p style="margin-bottom: 0.8rem; font-size:0.88rem; color:var(--text-muted);">Billing Period: <span id="vr-month-label" style="font-weight:800; color:var(--text-main);"></span></p>
+                <div class="rcpt-modal-preview-box">
+                    <img id="vr-preview-img" src="" alt="Payment Receipt Preview">
+                </div>
                 <div class="modal-actions">
                     <button type="button" id="btn-vr-share" onclick="window.moduleContext.shareReceipt('vr')" class="btn whatsapp">Share Receipt via WhatsApp</button>
+                    <button type="button" class="btn primary" onclick="window.moduleContext.downloadReceiptImageDirect()">⬇ Download Receipt Image</button>
                     <button type="button" class="btn secondary" onclick="document.getElementById('viewReceiptModal').style.display='none'">Close</button>
                 </div>
             </div>
@@ -1805,69 +1824,121 @@
 
     <div id="receipt-render-zone">
         <div id="receipt-template">
-            <div class="rcpt-header">
-                <img data-logo-src="logo.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%2250%22%20viewBox%3D%220%200%20220%2050%22%3E%3Crect%20width%3D%22220%22%20height%3D%2250%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2212%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23222222%22%3EREVIVE%20%3C%2Ftext%3E%3Ctext%20x%3D%22102%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23ff6600%22%3EFITNESS%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-logo-img" alt="REVIVE FITNESS STUDIO" onerror="this.onerror=null; this.src=window.FALLBACK_LOGO_SVG;">
-                <div class="rcpt-address">Kadayil Arcade, Thanal Nagar, Keralapuram, Keralam 691504<br>Ph: 8921698044</div>
-                <h3 class="rcpt-title">PAYMENT RECEIPT</h3>
+            <div class="rcpt-top-banner">
+                <div class="rcpt-logo-pill">
+                    <img data-logo-src="logo.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%2250%22%20viewBox%3D%220%200%20220%2050%22%3E%3Crect%20width%3D%22220%22%20height%3D%2250%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2212%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23222222%22%3EREVIVE%20%3C%2Ftext%3E%3Ctext%20x%3D%22102%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23ff6600%22%3EFITNESS%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-logo-img" alt="REVIVE FITNESS STUDIO" onerror="this.onerror=null; this.src=window.FALLBACK_LOGO_SVG;">
+                </div>
+                <div class="rcpt-address">Kadayil Arcade, Thanal Nagar, Keralapuram, Kollam 691504<br>Phone: +91 8921698044 • Official Studio Receipt</div>
+                <h3 class="rcpt-title">OFFICIAL PAYMENT RECEIPT</h3>
             </div>
-            <table class="rcpt-table">
-                <tr><td><strong>Member Name:</strong></td><td id="rcpt-name" style="text-align:right;"></td></tr>
-                <tr><td><strong>Admission No:</strong></td><td id="rcpt-id" style="text-align:right;"></td></tr>
-                <tr><td><strong>Phone:</strong></td><td id="rcpt-phone" style="text-align:right;"></td></tr>
-                <tr><td><strong>Month Paid For:</strong></td><td id="rcpt-month" style="text-align:right; font-weight:bold; color:var(--accent-orange);"></td></tr>
-            </table>
-            <div class="rcpt-amount-box">
-                <table style="width: 100%; font-size: 13.5px; line-height:1.85;">
-                    <tr><td><strong>Total Fee:</strong></td><td style="text-align: right; font-weight: 800;">₹<span id="rcpt-total-due">0</span></td></tr>
-                    <tr><td><strong>Total Paid:</strong></td><td style="text-align: right; color: green; font-weight: 900; font-size:15.5px;">₹<span id="rcpt-paid">0</span></td></tr>
-                    <tr><td><strong>Pending Balance:</strong></td><td id="rcpt-balance-cell" style="text-align: right; color: red; font-weight: 900;">₹<span id="rcpt-balance">0</span></td></tr>
-                    <tr><td><strong>Status:</strong></td><td id="rcpt-status-label" style="text-align: right; font-weight: 800; color: green;">PAID IN FULL</td></tr>
-                    <tr><td><strong>Payment Mode:</strong></td><td style="text-align: right; font-weight:bold;" id="rcpt-mode"></td></tr>
-                    <tr><td><strong>Collected By:</strong></td><td style="text-align: right; font-weight:bold; color:#333;" id="rcpt-collector"></td></tr>
+            <div class="rcpt-badge-bar">
+                <span>RECEIPT NO: <strong id="rcpt-no" style="color:var(--accent-orange);">RCPT-0001</strong></span>
+                <span>DATE: <strong id="rcpt-date"></strong></span>
+            </div>
+            <div class="rcpt-body">
+                <div class="rcpt-hero-paid" id="rcpt-hero-box">
+                    <div class="rcpt-hero-paid-lbl">Total Amount Received</div>
+                    <div class="rcpt-hero-paid-val">₹<span id="rcpt-paid">0</span></div>
+                    <div class="rcpt-status-pill" id="rcpt-status-label">PAID IN FULL (CLEARED)</div>
+                </div>
+
+                <table class="rcpt-table">
+                    <tr><td style="color:#666; font-weight:700;">Member Name</td><td id="rcpt-name" style="text-align:right; font-weight:900; font-size:13.5px; color:#111;"></td></tr>
+                    <tr><td style="color:#666; font-weight:700;">Admission ID</td><td id="rcpt-id" style="text-align:right; font-weight:900; color:var(--accent-orange);"></td></tr>
+                    <tr><td style="color:#666; font-weight:700;">Mobile Number</td><td id="rcpt-phone" style="text-align:right; font-weight:700;"></td></tr>
+                    <tr><td style="color:#666; font-weight:700;">Billing Period</td><td id="rcpt-month" style="text-align:right; font-weight:900; color:var(--accent-orange);"></td></tr>
                 </table>
+
+                <div class="rcpt-amount-box">
+                    <table style="width: 100%; font-size: 13px; line-height:1.95; border-collapse:collapse;">
+                        <tr style="border-bottom:1px dashed #e0e0e0;">
+                            <td style="color:#555; font-weight:700;">Total Fee Payable:</td>
+                            <td style="text-align: right; font-weight: 900; color:#111;">₹<span id="rcpt-total-due">0</span></td>
+                        </tr>
+                        <tr style="border-bottom:1px dashed #e0e0e0;">
+                            <td style="color:#555; font-weight:700;">Amount Paid:</td>
+                            <td style="text-align: right; color: #138a36; font-weight: 900; font-size:14.5px;">₹<span id="rcpt-paid-row">0</span></td>
+                        </tr>
+                        <tr style="border-bottom:1px dashed #e0e0e0;">
+                            <td style="color:#555; font-weight:700;">Shortfall / Pending:</td>
+                            <td id="rcpt-balance-cell" style="text-align: right; color: #d32f2f; font-weight: 900;">₹<span id="rcpt-balance">0</span></td>
+                        </tr>
+                        <tr>
+                            <td style="color:#555; font-weight:700;">Payment Method:</td>
+                            <td style="text-align: right; font-weight:800; color:#222;" id="rcpt-mode"></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="rcpt-sign-row">
+                    <div style="font-size:11px; color:#555; line-height:1.5;">
+                        <div style="font-weight:800; color:#111; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Verified & Collected By</div>
+                        <div id="rcpt-collector" style="font-weight:900; color:var(--accent-orange); font-size:12.5px;">System Admin</div>
+                        <div style="font-size:9.5px; color:#888; margin-top:2px;">*Fees once paid are non-refundable</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <img data-seal-src="signature.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22140%22%20height%3D%2245%22%20viewBox%3D%220%200%20140%2045%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%22136%22%20height%3D%2241%22%20rx%3D%224%22%20fill%3D%22none%22%20stroke%3D%22%23ff6600%22%20stroke-width%3D%222%22%2F%3E%3Ctext%20x%3D%2270%22%20y%3D%2220%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2210%22%20fill%3D%22%23ff6600%22%20text-anchor%3D%22middle%22%3EREVIVE%20FITNESS%20STUDIO%3C%2Ftext%3E%3Ctext%20x%3D%2270%22%20y%3D%2234%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22700%22%20font-size%3D%228.5%22%20fill%3D%22%23222222%22%20text-anchor%3D%22middle%22%3EAUTHORIZED%20SEAL%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-seal-img" alt="Authorized Seal" style="height:44px; object-fit:contain; display:block; margin:0 auto 2px auto;" onerror="this.onerror=null; this.src=window.FALLBACK_SEAL_SVG;">
+                        <div style="font-size:9px; font-weight:800; color:#444; letter-spacing:0.8px; text-transform:uppercase; border-top:1px solid #ccc; padding-top:2px;">Authorized Signatory</div>
+                    </div>
+                </div>
             </div>
-            <div class="rcpt-footer">Generated on <span id="rcpt-date"></span><br>Thank you for choosing Revive!</div>
+            <div class="rcpt-footer">THANK YOU FOR CHOOSING REVIVE FITNESS STUDIO!</div>
         </div>
 
-        <div id="supp-invoice-template" style="width: 420px; padding: 25px; background: #ffffff; border: 3px solid var(--accent-orange); font-family: 'Segoe UI', Arial, sans-serif; color: #111; box-sizing: border-box;">
-            <div class="rcpt-header">
-                <img data-logo-src="logo.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%2250%22%20viewBox%3D%220%200%20220%2050%22%3E%3Crect%20width%3D%22220%22%20height%3D%2250%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2212%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23222222%22%3EREVIVE%20%3C%2Ftext%3E%3Ctext%20x%3D%22102%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23ff6600%22%3EFITNESS%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-logo-img" alt="REVIVE FITNESS STUDIO" onerror="this.onerror=null; this.src=window.FALLBACK_LOGO_SVG;">
-                <div class="rcpt-address">Kadayil Arcade, Thanal Nagar, Keralapuram, Keralam 691504<br>Ph: 8921698044</div>
-                <h3 class="rcpt-title">SUPPLEMENT INVOICE</h3>
+        <div id="supp-invoice-template" style="width: 460px; background: #ffffff; border: 2px solid #1e1e1e; border-radius: 14px; overflow: hidden; font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #111; box-sizing: border-box;">
+            <div class="rcpt-top-banner">
+                <div class="rcpt-logo-pill">
+                    <img data-logo-src="logo.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%2250%22%20viewBox%3D%220%200%20220%2050%22%3E%3Crect%20width%3D%22220%22%20height%3D%2250%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2212%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23222222%22%3EREVIVE%20%3C%2Ftext%3E%3Ctext%20x%3D%22102%22%20y%3D%2232%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2222%22%20fill%3D%22%23ff6600%22%3EFITNESS%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-logo-img" alt="REVIVE FITNESS STUDIO" onerror="this.onerror=null; this.src=window.FALLBACK_LOGO_SVG;">
+                </div>
+                <div class="rcpt-address">Kadayil Arcade, Thanal Nagar, Keralapuram, Kollam 691504<br>Phone: +91 8921698044 • Supplement Store</div>
+                <h3 class="rcpt-title">SUPPLEMENT STORE INVOICE</h3>
             </div>
-            <table class="rcpt-table" style="font-size:12px; line-height:1.7;">
-                <tr><td><strong>Invoice No:</strong></td><td id="sinv-id" style="text-align:right; font-weight:bold; color:var(--accent-orange);"></td></tr>
-                <tr><td><strong>Date:</strong></td><td id="sinv-date" style="text-align:right;"></td></tr>
-                <tr><td><strong>Member:</strong></td><td id="sinv-member" style="text-align:right; font-weight:bold;"></td></tr>
-                <tr><td><strong>Phone:</strong></td><td id="sinv-phone" style="text-align:right;"></td></tr>
-                <tr><td><strong>Address:</strong></td><td id="sinv-address" style="text-align:right; font-size:11px;"></td></tr>
-            </table>
-            <div style="margin-top:12px; border-top:1px solid #ddd; border-bottom:1px solid #ddd; padding:8px 0;">
-                <table style="width:100%; font-size:11.5px; border-collapse:collapse;" id="sinv-items-table">
-                    <thead>
-                        <tr style="border-bottom:1px dashed #ccc; color:#555; text-align:left;">
-                            <th style="padding:4px 0;">Item</th>
-                            <th style="padding:4px 0; text-align:center;">Qty</th>
-                            <th style="padding:4px 0; text-align:right;">Rate</th>
-                            <th style="padding:4px 0; text-align:right;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
+            <div class="rcpt-badge-bar">
+                <span>INVOICE NO: <strong id="sinv-id" style="color:var(--accent-orange);"></strong></span>
+                <span>DATE: <strong id="sinv-date"></strong></span>
+            </div>
+            <div class="rcpt-body">
+                <table class="rcpt-table" style="font-size:12px;">
+                    <tr><td style="color:#666; font-weight:700;">Billed To Member</td><td id="sinv-member" style="text-align:right; font-weight:900; color:#111;"></td></tr>
+                    <tr><td style="color:#666; font-weight:700;">Mobile Number</td><td id="sinv-phone" style="text-align:right; font-weight:700;"></td></tr>
+                    <tr><td style="color:#666; font-weight:700;">Billing Address</td><td id="sinv-address" style="text-align:right; font-size:11px;"></td></tr>
                 </table>
+                <div style="margin:12px 0; border:1px solid #e6e6e6; border-radius:8px; overflow:hidden;">
+                    <table style="width:100%; font-size:11.5px; border-collapse:collapse;" id="sinv-items-table">
+                        <thead>
+                            <tr style="background:#181818; color:#fff; text-align:left;">
+                                <th style="padding:7px 10px;">Supplement Item</th>
+                                <th style="padding:7px 6px; text-align:center;">Qty</th>
+                                <th style="padding:7px 8px; text-align:right;">Price</th>
+                                <th style="padding:7px 10px; text-align:right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="rcpt-amount-box" style="padding:12px 16px;">
+                    <table style="width: 100%; font-size: 12.5px; line-height:1.85;">
+                        <tr><td style="color:#666;">Total MRP Value:</td><td style="text-align: right; text-decoration:line-through; color:#777;">₹<span id="sinv-mrp"></span></td></tr>
+                        <tr><td style="color:#666;">Store Offer Savings:</td><td style="text-align: right; color: #138a36; font-weight:bold;">- ₹<span id="sinv-disc"></span></td></tr>
+                        <tr id="sinv-coupon-row" style="display:none;"><td style="color:#666;">Coupon (<strong id="sinv-coupon-code" style="color:var(--accent-orange);"></strong>):</td><td style="text-align: right; color: #138a36; font-weight:bold;">- ₹<span id="sinv-coupon-disc">0</span></td></tr>
+                        <tr style="border-top:1px dashed #ddd;"><td style="font-weight:800;">Net Bill Amount:</td><td style="text-align: right; font-weight: 900; font-size:14px;">₹<span id="sinv-net"></span></td></tr>
+                        <tr><td style="font-weight:800;">Amount Paid:</td><td style="text-align: right; color: #138a36; font-weight: 900; font-size:15.5px;">₹<span id="sinv-paid"></span></td></tr>
+                        <tr><td style="font-weight:800;">Shortfall / Pending:</td><td id="sinv-bal-cell" style="text-align: right; color: #d32f2f; font-weight: 900;">₹<span id="sinv-bal">0</span></td></tr>
+                        <tr><td style="color:#666; font-weight:700;">Payment Mode:</td><td style="text-align: right; font-weight:bold;" id="sinv-mode"></td></tr>
+                    </table>
+                </div>
+                <div class="rcpt-sign-row">
+                    <div style="font-size:11px; color:#555;">
+                        <div style="font-weight:800; color:#111; text-transform:uppercase; font-size:10px;">Verified & Sold By</div>
+                        <div id="sinv-seller" style="font-weight:900; color:var(--accent-orange); font-size:12.5px;"></div>
+                    </div>
+                    <div style="text-align:center;">
+                        <img data-seal-src="signature.png" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22140%22%20height%3D%2245%22%20viewBox%3D%220%200%20140%2045%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%22136%22%20height%3D%2241%22%20rx%3D%224%22%20fill%3D%22none%22%20stroke%3D%22%23ff6600%22%20stroke-width%3D%222%22%2F%3E%3Ctext%20x%3D%2270%22%20y%3D%2220%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2210%22%20fill%3D%22%23ff6600%22%20text-anchor%3D%22middle%22%3EREVIVE%20FITNESS%20STUDIO%3C%2Ftext%3E%3Ctext%20x%3D%2270%22%20y%3D%2234%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22700%22%20font-size%3D%228.5%22%20fill%3D%22%23222222%22%20text-anchor%3D%22middle%22%3EAUTHORIZED%20SEAL%3C%2Ftext%3E%3C%2Fsvg%3E" class="brand-seal-img" alt="Authorized Seal" style="height:42px; object-fit:contain; display:block; margin:0 auto 2px auto;" onerror="this.onerror=null; this.src=window.FALLBACK_SEAL_SVG;">
+                        <div style="font-size:9px; font-weight:800; color:#444; letter-spacing:0.8px; text-transform:uppercase; border-top:1px solid #ccc; padding-top:2px;">Authorized Signatory</div>
+                    </div>
+                </div>
             </div>
-            <div class="rcpt-amount-box" style="margin-top:12px; padding:12px;">
-                <table style="width: 100%; font-size: 12.5px; line-height:1.8;">
-                    <tr><td>Total MRP:</td><td style="text-align: right; text-decoration:line-through; color:#777;">₹<span id="sinv-mrp"></span></td></tr>
-                    <tr><td>Offer Savings:</td><td style="text-align: right; color: green; font-weight:bold;">- ₹<span id="sinv-disc"></span></td></tr>
-                    <tr id="sinv-coupon-row" style="display:none;"><td>Coupon (<span id="sinv-coupon-code"></span>):</td><td style="text-align: right; color: green; font-weight:bold;">- ₹<span id="sinv-coupon-disc">0</span></td></tr>
-                    <tr><td><strong>Net Bill Amount:</strong></td><td style="text-align: right; font-weight: 800;">₹<span id="sinv-net"></span></td></tr>
-                    <tr><td><strong>Amount Paid:</strong></td><td style="text-align: right; color: green; font-weight: 900; font-size:15px;">₹<span id="sinv-paid"></span></td></tr>
-                    <tr><td><strong>Pending Balance:</strong></td><td id="sinv-bal-cell" style="text-align: right; color: red; font-weight: 900;">₹<span id="sinv-bal">0</span></td></tr>
-                    <tr><td><strong>Payment Mode:</strong></td><td style="text-align: right; font-weight:bold;" id="sinv-mode"></td></tr>
-                    <tr><td><strong>Sold By:</strong></td><td style="text-align: right; font-weight:bold;" id="sinv-seller"></td></tr>
-                </table>
-            </div>
-            <div class="rcpt-footer">Thank you for shopping at Revive Supplement Store!</div>
+            <div class="rcpt-footer">THANK YOU FOR SHOPPING AT REVIVE SUPPLEMENT STORE!</div>
         </div>
     </div>
     <script>
@@ -1967,7 +2038,7 @@
                 el.src = srcToUse;
             });
             const sealToUse = cachedSealDataUri || 'signature.png';
-            document.querySelectorAll('#pdf-template .brand-seal-img').forEach(el => {
+            document.querySelectorAll('#pdf-template .brand-seal-img, #receipt-template .brand-seal-img, #supp-invoice-template .brand-seal-img').forEach(el => {
                 el.src = sealToUse;
                 el.style.display = 'inline-block';
             });
@@ -4397,46 +4468,101 @@
                 window.moduleContext.generateReceiptImage(paidAmt, balDue, record.method || "N/A", record.collectedBy || "System Admin", 'view', record.lastDate, totalDue);
             },
             
-            generateReceiptImage: function(paidAmt, newBal, mode, collector, triggerFlow, overrideDate, totalDueAmt) {
+            populateStyledReceiptDom: function(memberObj, monthLabel, totalDueAmt, paidAmt, pendingBalAmt, mode, collector, dateIsoStr) {
                 applyLogoToExportTemplates();
-                const dIso = overrideDate || new Date().toISOString();
-                const dStr = new Date(dIso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                const dObj = dateIsoStr ? new Date(dateIsoStr) : new Date();
+                const dStr = (isNaN(dObj.getTime()) ? new Date() : dObj).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                const cleanPaid = parseInt(paidAmt || 0, 10);
+                const cleanBal = Math.max(0, parseInt(pendingBalAmt || 0, 10));
+                const cleanTotal = totalDueAmt != null ? parseInt(totalDueAmt, 10) : (cleanPaid + cleanBal);
+
+                const shortId = String(memberObj.id || 'REV').replace(/\D/g, '') || '001';
+                const shortM = String(monthLabel || 'FEE').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+                const rcptNoEl = document.getElementById('rcpt-no');
+                if (rcptNoEl) rcptNoEl.innerText = `RCPT-${shortId}-${shortM}`;
+
+                document.getElementById('rcpt-name').innerText = memberObj.fullName;
+                document.getElementById('rcpt-id').innerText = memberObj.id;
+                document.getElementById('rcpt-phone').innerText = memberObj.primaryContact;
+                document.getElementById('rcpt-month').innerText = monthLabel;
+                document.getElementById('rcpt-total-due').innerText = cleanTotal.toLocaleString('en-IN');
+                document.getElementById('rcpt-paid').innerText = cleanPaid.toLocaleString('en-IN');
+                const paidRowEl = document.getElementById('rcpt-paid-row');
+                if (paidRowEl) paidRowEl.innerText = cleanPaid.toLocaleString('en-IN');
+                document.getElementById('rcpt-balance').innerText = cleanBal === 0 ? '0 (Cleared)' : `${cleanBal.toLocaleString('en-IN')} (Shortfall)`;
+
+                const balCell = document.getElementById('rcpt-balance-cell');
+                if (balCell) balCell.style.color = cleanBal === 0 ? '#138a36' : '#d32f2f';
+
+                const heroBox = document.getElementById('rcpt-hero-box');
+                const statusEl = document.getElementById('rcpt-status-label');
+                if (cleanBal === 0) {
+                    if (heroBox) {
+                        heroBox.style.background = 'linear-gradient(135deg, #f4fbf7 0%, #e8f8ef 100%)';
+                        heroBox.style.borderColor = '#9fe3b8';
+                    }
+                    if (statusEl) {
+                        statusEl.innerText = '✔ PAID IN FULL (CLEARED)';
+                        statusEl.style.background = '#138a36';
+                        statusEl.style.color = '#ffffff';
+                    }
+                } else {
+                    if (heroBox) {
+                        heroBox.style.background = 'linear-gradient(135deg, #fffdf5 0%, #fff4e0 100%)';
+                        heroBox.style.borderColor = '#f6c36d';
+                    }
+                    if (statusEl) {
+                        statusEl.innerText = `⏳ PARTIAL (SHORTFALL: ₹${cleanBal})`;
+                        statusEl.style.background = '#d97706';
+                        statusEl.style.color = '#ffffff';
+                    }
+                }
+
+                document.getElementById('rcpt-mode').innerText = mode || 'UPI';
+                document.getElementById('rcpt-collector').innerText = collector || 'System Admin';
+                document.getElementById('rcpt-date').innerText = dStr;
+            },
+
+            downloadReceiptImageDirect: function() {
+                if (!window._lastGeneratedReceiptDataUrl) {
+                    showNotice("Receipt image is still rendering. Please try again in a moment.", "warning");
+                    return;
+                }
+                const uid = (currentActiveUser && currentActiveUser.id) ? currentActiveUser.id : ((currentMemberDetails && currentMemberDetails.id) ? currentMemberDetails.id : 'Member');
+                const mName = (activePaymentConfig && activePaymentConfig.month) ? String(activePaymentConfig.month).replace(/\s+/g, '_') : 'Fee';
+                const fileName = `Revive_Receipt_${uid}_${mName}.jpg`;
+                window.moduleContext.triggerDirectStorageDownload(window._lastGeneratedReceiptDataUrl, fileName);
+            },
+
+            generateReceiptImage: function(paidAmt, newBal, mode, collector, triggerFlow, overrideDate, totalDueAmt) {
                 const cleanPaid = parseInt(paidAmt || 0, 10);
                 const cleanBal = Math.max(0, parseInt(newBal || 0, 10));
                 const cleanTotal = totalDueAmt != null ? parseInt(totalDueAmt, 10) : (cleanPaid + cleanBal);
-                
-                document.getElementById('rcpt-name').innerText = currentActiveUser.fullName;
-                document.getElementById('rcpt-id').innerText = currentActiveUser.id;
-                document.getElementById('rcpt-phone').innerText = currentActiveUser.primaryContact;
-                document.getElementById('rcpt-month').innerText = `${activePaymentConfig.month} (${activePaymentConfig.fy})`;
-                document.getElementById('rcpt-total-due').innerText = cleanTotal;
-                document.getElementById('rcpt-paid').innerText = cleanPaid;
-                document.getElementById('rcpt-balance').innerText = cleanBal === 0 ? '0 (Cleared)' : cleanBal;
-                const balCell = document.getElementById('rcpt-balance-cell');
-                if (balCell) balCell.style.color = cleanBal === 0 ? 'green' : 'red';
-                const statusEl = document.getElementById('rcpt-status-label');
-                if (statusEl) {
-                    statusEl.innerText = cleanBal === 0 ? 'PAID IN FULL (CLEARED)' : 'PARTIAL (BALANCE PENDING)';
-                    statusEl.style.color = cleanBal === 0 ? 'green' : '#d97706';
-                }
-                document.getElementById('rcpt-mode').innerText = mode;
-                document.getElementById('rcpt-collector').innerText = collector || 'System Admin';
-                document.getElementById('rcpt-date').innerText = dStr;
+                const monthLbl = `${activePaymentConfig.month} (${activePaymentConfig.fy})`;
+
+                window.moduleContext.populateStyledReceiptDom(currentActiveUser, monthLbl, cleanTotal, cleanPaid, cleanBal, mode, collector, overrideDate);
 
                 const wrapper = document.getElementById('receipt-render-zone');
                 const target = document.getElementById('receipt-template');
                 wrapper.style.left = '0'; wrapper.style.opacity = '1';
 
                 setTimeout(() => {
-                    html2canvas(target, { scale: 2 }).then(canvas => {
+                    html2canvas(target, { scale: 2.5, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.96);
+                        window._lastGeneratedReceiptDataUrl = dataUrl;
+                        const srPrev = document.getElementById('sr-preview-img');
+                        if (srPrev) srPrev.src = dataUrl;
+                        const vrPrev = document.getElementById('vr-preview-img');
+                        if (vrPrev) vrPrev.src = dataUrl;
+
                         canvas.toBlob(blob => {
                             currentGeneratedReceiptBlob = blob;
                             wrapper.style.left = '-9999px'; wrapper.style.opacity = '0';
                             if (triggerFlow === 'success') { document.getElementById('receiptSuccessModal').style.display = 'flex'; } 
                             else if (triggerFlow === 'view') { document.getElementById('viewReceiptModal').style.display = 'flex'; }
-                        }, 'image/jpeg', 0.95);
+                        }, 'image/jpeg', 0.96);
                     });
-                }, 300);
+                }, 250);
             },
             
             shareReceipt: async function(source = 'success') {
@@ -4477,23 +4603,17 @@
                 const paidNow = parseInt(targetMember.initialAmountPaid != null ? targetMember.initialAmountPaid : totalFee, 10);
                 const pendingBal = Math.max(0, totalFee - paidNow);
 
-                document.getElementById('rcpt-name').innerText = targetMember.fullName; 
-                document.getElementById('rcpt-id').innerText = targetMember.id;
-                document.getElementById('rcpt-phone').innerText = targetMember.primaryContact; 
-                document.getElementById('rcpt-month').innerText = `Admission + ${targetMember._month} (${targetMember._fy})`;
-                document.getElementById('rcpt-total-due').innerText = totalFee;
-                document.getElementById('rcpt-paid').innerText = paidNow; 
-                document.getElementById('rcpt-balance').innerText = pendingBal === 0 ? "0 (Cleared)" : pendingBal;
-                const balCell = document.getElementById('rcpt-balance-cell');
-                if (balCell) balCell.style.color = pendingBal === 0 ? 'green' : 'red';
-                const statusEl = document.getElementById('rcpt-status-label');
-                if (statusEl) {
-                    statusEl.innerText = pendingBal === 0 ? 'PAID IN FULL (CLEARED)' : 'PARTIAL (BALANCE PENDING)';
-                    statusEl.style.color = pendingBal === 0 ? 'green' : '#d97706';
-                }
-                document.getElementById('rcpt-mode').innerText = document.getElementById('paymentMethod') ? document.getElementById('paymentMethod').value : 'CASH'; 
-                document.getElementById('rcpt-collector').innerText = targetMember.collectedBy || 'System Admin';
-                document.getElementById('rcpt-date').innerText = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                const modeVal = document.getElementById('paymentMethod') ? document.getElementById('paymentMethod').value : 'UPI';
+                window.moduleContext.populateStyledReceiptDom(
+                    targetMember,
+                    `Admission + ${targetMember._month} (${targetMember._fy})`,
+                    totalFee,
+                    paidNow,
+                    pendingBal,
+                    modeVal,
+                    targetMember.collectedBy || 'System Admin',
+                    new Date().toISOString()
+                );
 
                 const wrapper = document.getElementById('receipt-render-zone'); 
                 const target = document.getElementById('receipt-template');
@@ -5721,10 +5841,10 @@
                 tbody.innerHTML = '';
                 (s.items || []).forEach(it => {
                     tbody.innerHTML += `<tr style="border-bottom:1px solid #f0f0f0;">
-                        <td style="padding:4px 0;">${it.name}</td>
-                        <td style="padding:4px 0; text-align:center;">${it.qty}</td>
-                        <td style="padding:4px 0; text-align:right;">₹${it.offerPrice}</td>
-                        <td style="padding:4px 0; text-align:right; font-weight:bold;">₹${it.lineTotal}</td>
+                        <td style="padding:6px 10px; font-weight:600;">${it.name}</td>
+                        <td style="padding:6px 6px; text-align:center; font-weight:700;">${it.qty}</td>
+                        <td style="padding:6px 8px; text-align:right;">₹${it.offerPrice}</td>
+                        <td style="padding:6px 10px; text-align:right; font-weight:800;">₹${it.lineTotal}</td>
                     </tr>`;
                 });
 
