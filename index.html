@@ -1273,6 +1273,11 @@
                 <!-- Step 1: Browse Products & Add Multiple Quantities to Cart -->
                 <div id="supp-step-1" class="step-container active-step">
                     <div class="step-indicator">Step 1 of 3: Select Supplements</div>
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:1rem; background:var(--bg-main); padding:0.85rem 1rem; border-radius:10px; border:1px solid var(--border-color);">
+                        <span style="font-size:1.1rem;">🔍</span>
+                        <input type="text" id="supp-store-search" placeholder="Search supplements by name or category (Listed A → Z)..." oninput="window.moduleContext.renderSupplementCatalog()" autocomplete="off" style="background:#fff; padding:0.75rem 1rem;">
+                        <button type="button" id="btn-clear-supp-search" class="btn secondary" style="display:none; width:auto; padding:0.65rem 1rem; font-size:0.8rem;" onclick="document.getElementById('supp-store-search').value=''; window.moduleContext.renderSupplementCatalog();">Clear</button>
+                    </div>
                     <div id="supp-catalog-grid" class="supp-grid"></div>
 
                     <div class="cart-summary-bar" id="supp-cart-bar">
@@ -1433,7 +1438,8 @@
                             </div>
                             <div class="form-group" style="flex:2;">
                                 <label>Product Name <span class="required">*</span></label>
-                                <input type="text" id="supp-inv-name" placeholder="e.g. Gold Standard 100% Whey (2 lbs)" required>
+                                <input type="text" id="supp-inv-name" placeholder="Type supplement name to search existing or enter new..." oninput="window.moduleContext.previewSupplementInventoryName(this.value)" onfocus="window.moduleContext.previewSupplementInventoryName(this.value)" autocomplete="off" required>
+                                <div id="supp-inv-name-live-preview" style="margin-top:6px;"></div>
                             </div>
                             <div class="form-group" style="flex:1;">
                                 <label>Category / Brand</label>
@@ -5214,6 +5220,8 @@
                 selectedSuppMember = null;
                 currentSuppSaleRecord = null;
                 activeAppliedCoupon = null;
+                const searchInp = document.getElementById('supp-store-search');
+                if (searchInp) searchInp.value = '';
                 document.getElementById('supp-step-1').classList.add('active-step');
                 document.getElementById('supp-step-2').classList.remove('active-step');
                 document.getElementById('supp-step-3').classList.remove('active-step');
@@ -5222,17 +5230,45 @@
 
             renderSupplementCatalog: function() {
                 const supps = ensureDefaultSupplements();
-                const visibleSupps = supps.filter(item => item.storeVisible !== false);
+                // Sort all visible supplements alphabetically (A -> Z)
+                const allVisibleSupps = supps
+                    .filter(item => item.storeVisible !== false)
+                    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+
+                const searchEl = document.getElementById('supp-store-search');
+                const clearBtn = document.getElementById('btn-clear-supp-search');
+                const query = searchEl ? String(searchEl.value || '').trim().toLowerCase() : '';
+                if (clearBtn) clearBtn.style.display = query ? 'inline-flex' : 'none';
+
+                // Calculate cart totals across all items in cart (even if search filter is active)
+                let totalItems = 0;
+                let totalPayable = 0;
+                let totalMrp = 0;
+                supps.forEach(item => {
+                    const inCartQty = supplementCart[item.id] || 0;
+                    if (inCartQty > 0) {
+                        const mrp = parseInt(item.mrp || 0, 10);
+                        const offer = parseInt(item.offerPrice != null ? item.offerPrice : mrp, 10);
+                        totalItems += inCartQty;
+                        totalPayable += inCartQty * offer;
+                        totalMrp += inCartQty * mrp;
+                    }
+                });
+
+                const visibleSupps = query
+                    ? allVisibleSupps.filter(item =>
+                        String(item.name || '').toLowerCase().includes(query) ||
+                        String(item.category || '').toLowerCase().includes(query) ||
+                        String(item.id || '').toLowerCase().includes(query)
+                    )
+                    : allVisibleSupps;
+
                 const grid = document.getElementById('supp-catalog-grid');
                 if (!grid) return;
                 grid.innerHTML = '';
 
-                let totalItems = 0;
-                let totalPayable = 0;
-                let totalMrp = 0;
-
                 if (visibleSupps.length === 0) {
-                    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-muted);">No supplements are currently enabled for display in the store.</div>';
+                    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-muted);">${query ? 'No supplements match "' + query + '".' : 'No supplements are currently enabled for display in the store.'}</div>`;
                 }
 
                 visibleSupps.forEach(item => {
@@ -5240,12 +5276,6 @@
                     const mrp = parseInt(item.mrp || 0, 10);
                     const offer = parseInt(item.offerPrice != null ? item.offerPrice : mrp, 10);
                     const inCartQty = supplementCart[item.id] || 0;
-
-                    if (inCartQty > 0) {
-                        totalItems += inCartQty;
-                        totalPayable += inCartQty * offer;
-                        totalMrp += inCartQty * mrp;
-                    }
 
                     const savingsPct = mrp > offer ? Math.round(((mrp - offer) / mrp) * 100) : 0;
                     let stockBadgeClass = 'stock-in';
@@ -5796,6 +5826,69 @@ Best Regards,
                 document.getElementById('supp-inv-qty-label').innerHTML = 'Purchase Qty <span class="required">*</span>';
                 document.getElementById('btn-save-supp-inv').innerText = 'Save Product & Record Stock';
                 document.getElementById('btn-cancel-supp-edit').style.display = 'none';
+                const prevEl = document.getElementById('supp-inv-name-live-preview');
+                if (prevEl) prevEl.innerHTML = '';
+            },
+
+            previewSupplementInventoryName: function(val) {
+                const previewEl = document.getElementById('supp-inv-name-live-preview');
+                if (!previewEl) return;
+                const cleanVal = String(val || '').trim().toLowerCase();
+                if (!cleanVal) {
+                    previewEl.innerHTML = '';
+                    return;
+                }
+                const supps = ensureDefaultSupplements()
+                    .slice()
+                    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+                const matches = supps.filter(s =>
+                    String(s.name || '').toLowerCase().includes(cleanVal) ||
+                    String(s.category || '').toLowerCase().includes(cleanVal) ||
+                    String(s.id || '').toLowerCase().includes(cleanVal)
+                );
+                if (matches.length === 0) {
+                    previewEl.innerHTML = `<div style="font-size:0.78rem; color:var(--text-muted);">✨ New product "${val.trim()}" — fill details below to add to inventory.</div>`;
+                    return;
+                }
+                let listHtml = `<div style="font-size:0.75rem; font-weight:800; color:var(--accent-orange); margin-bottom:4px;">Matching Supplements in Inventory (Click to select & restock/update):</div>`;
+                listHtml += `<div style="display:grid; gap:6px; max-height:200px; overflow-y:auto; padding:4px; background:var(--bg-panel); border:1px solid var(--border-color); border-radius:8px;">`;
+                matches.forEach(item => {
+                    const safeId = String(item.id).replace(/'/g, "\\'");
+                    listHtml += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border-color); cursor:pointer; background:var(--bg-main); border-radius:6px;"
+                             onclick="window.moduleContext.selectExistingSuppForPurchase('${safeId}')">
+                            <div>
+                                <div style="font-weight:800; color:var(--text-main); font-size:0.9rem;">${item.name}</div>
+                                <div style="font-size:0.75rem; color:var(--text-muted);">${item.id} • ${item.category || 'Supplement'} | Landing: ₹${item.costPrice || 0} | MRP: ₹${item.mrp}</div>
+                            </div>
+                            <span style="font-size:0.78rem; font-weight:800; color:var(--success-green); white-space:nowrap; margin-left:8px;">Stock: ${item.stock}</span>
+                        </div>
+                    `;
+                });
+                listHtml += `</div>`;
+                previewEl.innerHTML = listHtml;
+            },
+
+            selectExistingSuppForPurchase: function(id) {
+                const supps = ensureDefaultSupplements();
+                const item = supps.find(s => String(s.id) === String(id));
+                if (!item) return;
+                document.getElementById('supp-inv-id').value = item.id;
+                document.getElementById('supp-inv-name').value = item.name;
+                document.getElementById('supp-inv-cat').value = item.category || '';
+                document.getElementById('supp-inv-cost').value = item.costPrice || 0;
+                document.getElementById('supp-inv-mrp').value = item.mrp;
+                document.getElementById('supp-inv-entry-mode').value = 'purchase';
+                document.getElementById('supp-inv-form-title').innerText = `Restock / Update Selected: ${item.name} (Current Stock: ${item.stock})`;
+                document.getElementById('supp-inv-qty-label').innerHTML = 'Purchase Qty <span class="required">*</span>';
+                if (!document.getElementById('supp-inv-qty').value) {
+                    document.getElementById('supp-inv-qty').value = 5;
+                }
+                document.getElementById('btn-cancel-supp-edit').style.display = 'inline-flex';
+                const prevEl = document.getElementById('supp-inv-name-live-preview');
+                if (prevEl) {
+                    prevEl.innerHTML = `<span style="color:var(--success-green); font-size:0.8rem; font-weight:700;">✔ Selected existing product (${item.id} — Stock: ${item.stock} units). Enter Purchase Qty to add stock.</span>`;
+                }
             },
 
             saveSupplementInventory: function(e) {
@@ -5818,9 +5911,14 @@ Best Regards,
                 let supps = ensureDefaultSupplements();
                 let targetProduct = null;
                 let qtyPurchasedForReport = 0;
+                let resolvedEditId = editId;
+                if (!resolvedEditId) {
+                    const exactByName = supps.find(s => String(s.name || '').trim().toLowerCase() === name.toLowerCase());
+                    if (exactByName) resolvedEditId = exactByName.id;
+                }
 
-                if (editId) {
-                    const idx = supps.findIndex(s => String(s.id) === String(editId));
+                if (resolvedEditId) {
+                    const idx = supps.findIndex(s => String(s.id) === String(resolvedEditId));
                     if (idx !== -1) {
                         supps[idx].name = name;
                         supps[idx].category = cat;
@@ -5937,7 +6035,7 @@ Best Regards,
             },
 
             renderSupplementInventoryTable: function() {
-                const supps = ensureDefaultSupplements();
+                const supps = ensureDefaultSupplements().slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
                 const tbody = document.querySelector('#table-supp-inventory tbody');
                 if (!tbody) return;
                 tbody.innerHTML = '';
@@ -6001,7 +6099,7 @@ Best Regards,
             },
 
             renderSupplementStoreConfigTable: function() {
-                const supps = ensureDefaultSupplements();
+                const supps = ensureDefaultSupplements().slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
                 const tbody = document.querySelector('#table-supp-store-config tbody');
                 if (!tbody) return;
                 tbody.innerHTML = '';
