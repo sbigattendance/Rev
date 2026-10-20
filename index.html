@@ -1701,21 +1701,20 @@
                         <div class="fee-row"><span>Total MRP Value:</span> <strong>₹<span id="supp-pay-mrp">0</span></strong></div>
                         <div class="fee-row"><span>Store Offer Savings:</span> <strong style="color:var(--success-green);">- ₹<span id="supp-pay-disc">0</span></strong></div>
                         <div class="fee-row" id="supp-coupon-discount-row" style="display:none;">
-                            <span>Coupon Applied: <strong id="supp-applied-coupon-tag" style="color:var(--accent-orange);"></strong></span>
+                            <span>Coupon Applied:<strong id="supp-applied-coupon-tag" style="display:none;"></strong></span>
                             <strong style="color:var(--success-green);">- ₹<span id="supp-pay-coupon-disc">0</span></strong>
                         </div>
                         <div class="fee-row fee-total"><span>Net Payable Amount:</span> <strong>₹<span id="supp-pay-net">0</span></strong></div>
 
-                        <!-- Coupon Code Provision -->
+                        <!-- Coupon Code Provision (Active coupons are not revealed here; user must enter code manually) -->
                         <div style="margin-top:1rem; padding:0.9rem; background:var(--bg-panel); border:1px dashed var(--accent-orange); border-radius:8px;">
                             <label for="supp-coupon-input" style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Have a Coupon Code?</label>
                             <div style="display:flex; gap:8px; align-items:center;">
-                                <input type="text" id="supp-coupon-input" placeholder="Enter Coupon Code" style="text-transform:uppercase; font-weight:800; padding:0.65rem 0.9rem;" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.moduleContext.applySupplementCoupon();}">
+                                <input type="text" id="supp-coupon-input" placeholder="Enter Coupon Code" style="text-transform:uppercase; font-weight:800; padding:0.65rem 0.9rem;" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.moduleContext.applySupplementCoupon();}">
                                 <button type="button" class="btn secondary" style="width:auto; padding:0.65rem 1.1rem; font-size:0.8rem; border-color:var(--accent-orange); color:var(--accent-orange); white-space:nowrap;" onclick="window.moduleContext.applySupplementCoupon()">Apply</button>
                                 <button type="button" id="btn-remove-supp-coupon" class="btn danger" style="display:none; width:auto; padding:0.65rem 0.9rem; font-size:0.8rem;" onclick="window.moduleContext.removeSupplementCoupon()">✕</button>
                             </div>
                             <div id="supp-coupon-msg" style="margin-top:6px; font-size:0.82rem; font-weight:700;"></div>
-                            <div id="supp-live-coupons-bar" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;"></div>
                         </div>
 
                         <div style="margin-top:1rem; padding:1rem; background:#fff8f3; border:2px solid var(--accent-orange); border-radius:10px;">
@@ -8614,34 +8613,6 @@
                 return { totalMrp, baseSellingTotal, couponDisc, finalNet };
             },
 
-            renderLiveCouponsInStore: function() {
-                const barEl = document.getElementById('supp-live-coupons-bar');
-                if (!barEl) return;
-                const coupons = ensureDefaultSuppCoupons();
-                if (!coupons || coupons.length === 0) {
-                    barEl.innerHTML = '';
-                    return;
-                }
-                const { baseSellingTotal } = window.moduleContext.getSupplementCartSubtotalInfo();
-                let htmlOut = `<span style="font-size:0.74rem; font-weight:800; color:var(--text-muted); margin-right:4px;">Live Coupons (Click to Apply):</span>`;
-                coupons.forEach(c => {
-                    const minOrd = parseFloat(c.minOrder || 0) || 0;
-                    const isEligible = baseSellingTotal >= minOrd;
-                    const isApplied = activeAppliedCoupon && String(activeAppliedCoupon.code).toUpperCase() === String(c.code).toUpperCase();
-                    const discTxt = c.type === 'PERCENT' ? `${c.value}% OFF` : `₹${c.value} OFF`;
-                    const minTxt = minOrd > 0 ? ` (Min ₹${minOrd})` : '';
-                    const safeCode = String(c.code).replace(/'/g, "\'");
-                    htmlOut += `<button type="button" onclick="window.moduleContext.quickApplySuppCoupon('${safeCode}')" style="border:1.5px solid ${isApplied ? 'var(--success-green)' : 'var(--accent-orange)'}; background:${isApplied ? '#eefbf3' : '#fff5eb'}; color:${isApplied ? '#138a36' : 'var(--accent-orange)'}; padding:4px 10px; border-radius:16px; font-size:0.75rem; font-weight:800; cursor:pointer; opacity:${isEligible ? '1' : '0.65'};" title="${isEligible ? 'Click to apply coupon ' + c.code : 'Requires minimum bill of ₹' + minOrd}">🏷️ ${c.code}: ${discTxt}${minTxt}${isApplied ? ' ✓' : ''}</button>`;
-                });
-                barEl.innerHTML = htmlOut;
-            },
-
-            quickApplySuppCoupon: function(codeStr) {
-                const inp = document.getElementById('supp-coupon-input');
-                if (inp) inp.value = codeStr;
-                window.moduleContext.applySupplementCoupon();
-            },
-
             proceedToSuppPayment: function() {
                 if (!selectedSuppMember || !document.getElementById('supp-cust-id').value) {
                     const typed = document.getElementById('supp-member-search').value.trim();
@@ -8663,7 +8634,6 @@
                 document.getElementById('supp-coupon-discount-row').style.display = 'none';
 
                 window.moduleContext.recalcSupplementSummaryTotals(true);
-                window.moduleContext.renderLiveCouponsInStore();
 
                 document.getElementById('supp-staff-pin').value = '';
                 document.getElementById('supp-pin-identity').style.color = 'var(--text-muted)';
@@ -8687,16 +8657,15 @@
 
                 const cpnRow = document.getElementById('supp-coupon-discount-row');
                 const cpnTag = document.getElementById('supp-applied-coupon-tag');
+                if (cpnTag) {
+                    cpnTag.style.display = 'none';
+                    cpnTag.innerText = '';
+                }
                 if (activeAppliedCoupon && couponDisc > 0) {
                     cpnRow.style.display = 'flex';
-                    if (cpnTag) {
-                        cpnTag.style.display = 'inline';
-                        cpnTag.innerText = ` (${activeAppliedCoupon.code})`;
-                    }
                     document.getElementById('supp-pay-coupon-disc').innerText = couponDisc;
                 } else {
                     cpnRow.style.display = 'none';
-                    if (cpnTag) cpnTag.innerText = '';
                     document.getElementById('supp-pay-coupon-disc').innerText = '0';
                 }
 
@@ -8710,7 +8679,6 @@
                     }
                 }
                 window.moduleContext.updateSuppPaymentUI();
-                window.moduleContext.renderLiveCouponsInStore();
             },
 
             applySupplementCoupon: function() {
@@ -8719,14 +8687,14 @@
                 const removeBtn = document.getElementById('btn-remove-supp-coupon');
                 const code = String(codeInput.value || '').trim().toUpperCase();
                 if (!code) {
-                    showNotice("Please enter or tap a coupon code.", "error");
+                    showNotice("Please enter a coupon code.", "error");
                     return;
                 }
                 const coupons = ensureDefaultSuppCoupons();
                 const matched = coupons.find(c => String(c.code || '').trim().toUpperCase() === code);
                 if (!matched) {
                     msgEl.style.color = 'var(--error-red)';
-                    msgEl.innerText = `✖ Invalid coupon code "${code}". Check live coupons below.`;
+                    msgEl.innerText = `✖ Invalid coupon code.`;
                     return;
                 }
                 activeAppliedCoupon = null;
@@ -8734,16 +8702,16 @@
                 const minOrd = Math.max(0, parseFloat(matched.minOrder || 0) || 0);
                 if (baseSellingTotal < minOrd) {
                     msgEl.style.color = 'var(--error-red)';
-                    msgEl.innerText = `✖ Coupon "${code}" requires a minimum order of ₹${minOrd} (Current bill: ₹${baseSellingTotal}).`;
+                    msgEl.innerText = `✖ This coupon requires a minimum order of ₹${minOrd}.`;
                     return;
                 }
                 activeAppliedCoupon = matched;
                 window.moduleContext.recalcSupplementSummaryTotals(true);
                 const { couponDisc, finalNet } = window.moduleContext.getSupplementCartSubtotalInfo();
                 msgEl.style.color = 'var(--success-green)';
-                msgEl.innerText = `✔ Coupon "${matched.code}" Applied! You saved an extra ₹${couponDisc} (Net Payable: ₹${finalNet}).`;
+                msgEl.innerText = `✔ Coupon Applied! You saved an extra ₹${couponDisc} (Net Payable: ₹${finalNet}).`;
                 removeBtn.style.display = 'inline-flex';
-                showNotice(`Coupon ${matched.code} applied (-₹${couponDisc})!`, "success");
+                showNotice(`Coupon applied (-₹${couponDisc})!`, "success");
             },
 
             removeSupplementCoupon: function() {
@@ -8962,13 +8930,13 @@
 
                 const sinvCpnRow = document.getElementById('sinv-coupon-row');
                 const sinvCpnCode = document.getElementById('sinv-coupon-code');
+                if (sinvCpnCode) {
+                    sinvCpnCode.style.display = 'none';
+                    sinvCpnCode.innerText = '';
+                }
                 if (sinvCpnRow) {
                     if (sCpnDisc > 0) {
                         sinvCpnRow.style.display = 'table-row';
-                        if (sinvCpnCode) {
-                            sinvCpnCode.style.display = 'inline';
-                            sinvCpnCode.innerText = s.couponCode ? ` (${s.couponCode})` : '';
-                        }
                         document.getElementById('sinv-coupon-disc').innerText = sCpnDisc;
                     } else {
                         sinvCpnRow.style.display = 'none';
@@ -9052,7 +9020,7 @@
                     const sCpnDisc = parseInt(s.couponDiscount || 0, 10);
                     const sPaid = s.amountPaid != null ? parseInt(s.amountPaid, 10) : sTotal;
                     const sBal = Math.max(0, sTotal - sPaid);
-                    const cpnLine = (sCpnDisc > 0) ? `• *Coupon Applied (${s.couponCode || 'Promo'}):* -₹${sCpnDisc}\n` : '';
+                    const cpnLine = (sCpnDisc > 0) ? `• *Coupon Applied:* -₹${sCpnDisc}\n` : '';
                     const stInfo = getStudioDetails();
                     const msg = `Dear ${s.fullName},\n\n*Revive Supplement Invoice (${s.id}):*\n${itemsTxt}\n${cpnLine}• *Net Bill:* ₹${sTotal}\n• *Amount Paid:* ₹${sPaid} (${s.method || 'UPI'})\n• *Pending Balance:* ₹${sBal === 0 ? '0 (Cleared)' : sBal}\n• *Sold By:* ${s.soldBy || 'Admin'}\n\nBest Regards,\n*Revive Fitness Studio*\n📞 ${stInfo.contact1}${stInfo.contact2 ? ' / ' + stInfo.contact2 : ''}`;
 
