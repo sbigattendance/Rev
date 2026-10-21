@@ -3044,16 +3044,91 @@
             if (sigFile) sigFile.value = '';
         }
 
-        // Fix #2: Synchronize Admission ID series (REV-XXXX) strictly with Google Sheet users data
-        function extractRevNumber(val) {
-            if (!val) return 0;
-            const s = String(val).trim().toUpperCase();
-            const match = s.match(/REV[-\s]*(\d+)/i) || s.match(/^(\d+)$/);
-            if (match && match[1]) {
-                const n = parseInt(match[1], 10);
-                return (!isNaN(n) && n > 0 && n < 1000000) ? n : 0;
+        // Fix #2: Synchronize Admission ID series (REV-XXXX) & Re-Admission ID series (REV-XXXX-01, REV-XXXX-02...)
+        function parseRevIdParts(rawVal) {
+            if (!rawVal) return { baseNum: 0, readmCount: 0, baseId: '', fullId: '' };
+            const s = String(rawVal).trim().toUpperCase();
+            const m = s.match(/^(?:REV[-\s]*)?(\d+)(?:[-](\d+))?$/i);
+            if (m && m[1]) {
+                const baseNum = parseInt(m[1], 10);
+                const readmCount = m[2] ? parseInt(m[2], 10) : 0;
+                if (!isNaN(baseNum) && baseNum > 0 && baseNum < 1000000) {
+                    const baseId = `REV-${String(baseNum).padStart(4, '0')}`;
+                    const fullId = readmCount > 0 ? `${baseId}-${String(readmCount).padStart(2, '0')}` : baseId;
+                    return { baseNum, readmCount, baseId, fullId };
+                }
             }
-            return 0;
+            return { baseNum: 0, readmCount: 0, baseId: s, fullId: s };
+        }
+
+        function normalizeAdmissionId(rawVal, fallbackIdx = 0) {
+            const parts = parseRevIdParts(rawVal);
+            if (parts.baseNum > 0) return parts.fullId;
+            const clean = String(rawVal || '').trim();
+            return clean || `REV-${String(fallbackIdx + 1).padStart(4, '0')}`;
+        }
+
+        function extractRevNumber(val) {
+            return parseRevIdParts(val).baseNum;
+        }
+
+        function getSupersededUserIdsSet(usersList) {
+            const list = Array.isArray(usersList) ? usersList : storage.get('revive_users_db', []);
+            const maxReadmByBase = {};
+            list.forEach(u => {
+                if (!u || !u.id) return;
+                const p = parseRevIdParts(u.id);
+                if (p.baseNum > 0) {
+                    if (maxReadmByBase[p.baseNum] === undefined || p.readmCount > maxReadmByBase[p.baseNum]) {
+                        maxReadmByBase[p.baseNum] = p.readmCount;
+                    }
+                }
+            });
+            const superseded = new Set();
+            list.forEach(u => {
+                if (!u || !u.id) return;
+                const p = parseRevIdParts(u.id);
+                if (p.baseNum > 0 && maxReadmByBase[p.baseNum] > p.readmCount) {
+                    superseded.add(String(u.id).trim().toUpperCase());
+                }
+            });
+            return superseded;
+        }
+
+        function resolveToLatestUserRecord(user, usersList) {
+            if (!user || !user.id) return user;
+            const list = Array.isArray(usersList) ? usersList : storage.get('revive_users_db', []);
+            const targetParts = parseRevIdParts(user.id);
+            if (!targetParts.baseNum) return user;
+            let latestUser = user;
+            let highestReadm = targetParts.readmCount;
+            list.forEach(u => {
+                if (!u || !u.id) return;
+                const p = parseRevIdParts(u.id);
+                if (p.baseNum === targetParts.baseNum && p.readmCount > highestReadm) {
+                    highestReadm = p.readmCount;
+                    latestUser = u;
+                }
+            });
+            return latestUser;
+        }
+
+        function getNextReadmissionIdForUser(sourceUser) {
+            if (!sourceUser || !sourceUser.id) return getNextAdmissionId();
+            const parts = parseRevIdParts(sourceUser.id);
+            if (!parts.baseNum) return `${String(sourceUser.id).trim()}-01`;
+            const users = storage.get('revive_users_db', []);
+            const archived = storage.get('revive_archived_users_db', []);
+            let maxReadm = parts.readmCount || 0;
+            [...users, ...archived].forEach(u => {
+                if (!u || !u.id) return;
+                const p = parseRevIdParts(u.id);
+                if (p.baseNum === parts.baseNum && p.readmCount > maxReadm) {
+                    maxReadm = p.readmCount;
+                }
+            });
+            const nextReadm = maxReadm + 1;
+            return `${parts.baseId}-${String(nextReadm).padStart(2, '0')}`;
         }
 
         function syncAdmissionCounter() {
@@ -3453,8 +3528,7 @@
                         const cancelledIds = storage.get('revive_cancelled_ids_db', []);
                         const normalizedUsers = data.users.map((u, idx) => {
                             const rawId = u.id || u.admissionId || u.AdmissionID || u['Admission ID'] || u.userId || `REV-${String(idx + 1).padStart(4, '0')}`;
-                            const num = extractRevNumber(rawId);
-                            const cleanId = num > 0 ? `REV-${String(num).padStart(4, '0')}` : String(rawId).trim();
+                            const cleanId = normalizeAdmissionId(rawId, idx);
                             const localMatch = localUsers.find(lu => String(lu.id) === cleanId);
                             const dInfo = parseAdmissionDateInfo(u.date || u.dateOfAdmission, u._month, u._fy);
                             const isCanc = cancelledIds.includes(cleanId) || isUserCancelled(u) || (localMatch && isUserCancelled(localMatch));
@@ -3890,14 +3964,26 @@
         
         function findUsersForAttendance(val, includeCancelled = false) {
             const cleanVal = String(val).trim().toLowerCase();
+            const cleanAlphaNum = cleanVal.replace(/[^a-z0-9]/g, '');
             let users = storage.get('revive_users_db', []);
-            return users.filter(u => 
-                (includeCancelled || !isUserCancelled(u)) && (
-                    (u.id && String(u.id).toLowerCase().includes(cleanVal)) || 
-                    (u.primaryContact && String(u.primaryContact).includes(cleanVal)) || 
+            const supersededIds = getSupersededUserIdsSet(users);
+            return users.filter(u => {
+                if (!u || !u.id) return false;
+                if (supersededIds.has(String(u.id).trim().toUpperCase())) return false;
+                if (!includeCancelled && isUserCancelled(u)) return false;
+                const idLower = String(u.id).toLowerCase();
+                const idAlphaNum = idLower.replace(/[^a-z0-9]/g, '');
+                const prevIdLower = u.previousAdmissionId ? String(u.previousAdmissionId).toLowerCase() : '';
+                const prevIdAlphaNum = prevIdLower.replace(/[^a-z0-9]/g, '');
+                return (
+                    idLower.includes(cleanVal) ||
+                    (cleanAlphaNum && idAlphaNum.includes(cleanAlphaNum)) ||
+                    (prevIdLower && prevIdLower.includes(cleanVal)) ||
+                    (cleanAlphaNum && prevIdAlphaNum && prevIdAlphaNum.includes(cleanAlphaNum)) ||
+                    (u.primaryContact && String(u.primaryContact).includes(cleanVal)) ||
                     (u.fullName && String(u.fullName).toLowerCase().includes(cleanVal))
-                )
-            );
+                );
+            });
         }
 
         var appContext = {
@@ -4021,6 +4107,7 @@
             startAdmission: function() {
                 IS_EDIT_MODE = false;
                 window._returnToAdmissionOnHubBack = false;
+                window._selectedReadmissionUser = null;
                 clearRuntimeCache(false);
                 syncAdmissionCounter();
                 // Refresh latest user series from Google Sheet in background so REV-XXXX is always aligned
@@ -4033,8 +4120,7 @@
                                 const cancelledIds = storage.get('revive_cancelled_ids_db', []);
                                 const normalizedUsers = data.users.map((u, idx) => {
                                     const rawId = u.id || u.admissionId || u.AdmissionID || u['Admission ID'] || u.userId || `REV-${String(idx + 1).padStart(4, '0')}`;
-                                    const num = extractRevNumber(rawId);
-                                    const cleanId = num > 0 ? `REV-${String(num).padStart(4, '0')}` : String(rawId).trim();
+                                    const cleanId = normalizeAdmissionId(rawId, idx);
                                     const localMatch = localUsers.find(lu => String(lu.id) === cleanId);
                                     const dInfo = parseAdmissionDateInfo(u.date || u.dateOfAdmission, u._month, u._fy);
                                     const isCanc = cancelledIds.includes(cleanId) || isUserCancelled(u) || (localMatch && isUserCancelled(localMatch));
@@ -6792,12 +6878,22 @@
                 if(!val) { resBox.innerHTML = '<span style="color:var(--error-red); font-weight:bold;">Please enter a valid Phone Number, ID, or Name.</span>'; return; }
                 
                 let users = storage.get('revive_users_db', []);
-                let user = users.find(u => !isUserCancelled(u) && (String(u.id).toLowerCase() === String(val).toLowerCase() || String(u.primaryContact) === String(val)));
-                
+                const supersededAttIds = getSupersededUserIdsSet(users);
+                const cleanAttAlpha = String(val).toLowerCase().replace(/[^a-z0-9]/g, '');
+                let user = users.find(u =>
+                    u && u.id &&
+                    !supersededAttIds.has(String(u.id).trim().toUpperCase()) &&
+                    !isUserCancelled(u) && (
+                        String(u.id).toLowerCase() === String(val).toLowerCase() ||
+                        String(u.id).toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAttAlpha ||
+                        String(u.primaryContact) === String(val)
+                    )
+                );
                 if (!user) {
                     let matches = findUsersForAttendance(val);
                     if(matches.length === 1) user = matches[0];
                 }
+                if (user) user = resolveToLatestUserRecord(user, users);
 
                 if(!user) { 
                     resBox.innerHTML = `<span style="color:var(--error-red); font-weight:bold;">Exact active member not identified. Please click a profile from the search list above.</span>`; 
@@ -6938,20 +7034,24 @@
 
             loadProfileByPhoneOrId: function(identifier) {
                 const cleanId = String(identifier || '').trim();
+                const cleanAlpha = cleanId.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const users = storage.get('revive_users_db', []);
-                // Match exact Admission ID first (preferring Active, then Cancelled)
-                let user = users.find(u => !isUserCancelled(u) && String(u.id).toLowerCase() === cleanId.toLowerCase());
+                const supersededIds = getSupersededUserIdsSet(users);
+                // Match exact Admission ID first (preferring Active non-superseded, then resolving any previous ID to its latest Re-Admission record)
+                let user = users.find(u => !supersededIds.has(String(u.id).trim().toUpperCase()) && !isUserCancelled(u) && (String(u.id).toLowerCase() === cleanId.toLowerCase() || String(u.id).toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlpha));
                 if (!user) {
-                    user = users.find(u => String(u.id).toLowerCase() === cleanId.toLowerCase());
+                    user = users.find(u => String(u.id).toLowerCase() === cleanId.toLowerCase() || String(u.id).toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlpha);
                 }
                 if (!user) {
-                    user = [...users].reverse().find(u => !isUserCancelled(u) && String(u.primaryContact) === cleanId);
+                    user = [...users].reverse().find(u => !supersededIds.has(String(u.id).trim().toUpperCase()) && !isUserCancelled(u) && String(u.primaryContact) === cleanId);
                 }
                 if (!user) {
                     const archived = storage.get('revive_archived_users_db', []);
-                    user = [...users, ...archived].reverse().find(u => String(u.id).toLowerCase() === cleanId.toLowerCase() || String(u.primaryContact) === cleanId);
+                    user = [...users, ...archived].reverse().find(u => String(u.id).toLowerCase() === cleanId.toLowerCase() || String(u.id).toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlpha || String(u.primaryContact) === cleanId);
                 }
                 if(!user) { showNotice("User profile not found.", "error"); return; }
+                // Always resolve to the latest Re-Admission record so superseded previous admission numbers redirect to the latest admission ID & details
+                user = resolveToLatestUserRecord(user, users);
 
                 const dInfo = parseAdmissionDateInfo(user.date, user._month, user._fy);
                 user.date = dInfo.formattedDate;
@@ -6961,8 +7061,8 @@
                 user._fy = dInfo.fy;
                 user._month = dInfo.monthName;
 
-                // Check if multiple members are registered under the same phone number (Family combination)
-                const samePhoneMembers = users.filter(u => String(u.primaryContact) === String(user.primaryContact));
+                // Check if multiple members are registered under the same phone number (Family combination, excluding superseded previous admission records)
+                const samePhoneMembers = users.filter(u => !supersededIds.has(String(u.id).trim().toUpperCase()) && String(u.primaryContact) === String(user.primaryContact));
                 const famSwitcher = document.getElementById('hub-family-switcher');
                 if (famSwitcher) {
                     if (samePhoneMembers.length > 1) {
@@ -7079,11 +7179,13 @@
             fetchUserHub: function(e) {
                 if(e && e.preventDefault) e.preventDefault();
                 const query = document.getElementById('search-phone').value.trim();
+                const cleanQueryAlpha = query.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const users = storage.get('revive_users_db', []);
                 const includeCancelled = (currentHubMode === 'details' || appContext.currentRole === 'admin');
-                const exactIdMatch = users.find(u => (includeCancelled || !isUserCancelled(u)) && String(u.id).toLowerCase() === String(query).toLowerCase());
+                const exactIdMatch = users.find(u => (includeCancelled || !isUserCancelled(u)) && (String(u.id).toLowerCase() === String(query).toLowerCase() || String(u.id).toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQueryAlpha));
                 if (exactIdMatch) {
-                    window.moduleContext.loadProfileByPhoneOrId(exactIdMatch.id);
+                    const latestMatch = resolveToLatestUserRecord(exactIdMatch, users);
+                    window.moduleContext.loadProfileByPhoneOrId(latestMatch.id);
                     return;
                 }
                 const matches = findUsersForAttendance(query, includeCancelled);
@@ -7462,7 +7564,7 @@
                 const cleanBal = Math.max(0, parseInt(pendingBalAmt || 0, 10));
                 const cleanTotal = totalDueAmt != null ? parseInt(totalDueAmt, 10) : (cleanPaid + cleanBal);
 
-                const shortId = String(memberObj.id || 'REV').replace(/\D/g, '') || '001';
+                const shortId = String(memberObj.id || 'REV').replace(/^REV-?/i, '') || '001';
                 const shortM = String(monthLabel || 'FEE').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
                 const rcptNoEl = document.getElementById('rcpt-no');
                 if (rcptNoEl) rcptNoEl.innerText = `RCPT-${shortId}-${shortM}`;
@@ -7960,6 +8062,7 @@
                     // 1. Admissions count & fee calculation (includes archived/deleted users so historical revenue is never lost)
                     const archivedUsers = storage.get('revive_archived_users_db', []);
                     const allUsersForAdmReport = [...users, ...archivedUsers.filter(a => !users.some(u => String(u.id) === String(a.id)))];
+                    const supersededAdmIds = getSupersededUserIdsSet(allUsersForAdmReport);
                     allUsersForAdmReport.forEach(u => {
                         if(!u || !u.date) return;
                         const uFy = u._fy || window.moduleContext.getFyFromDateStr(u.date);
@@ -7968,7 +8071,9 @@
                             const defaultAdmExpected = (u.admissionType === 'Re-Admission') ? (APP_CONFIG.baseReadmissionFee || 500) : parseInt(((tariffs[targetFy] && tariffs[targetFy][u._month]) ? tariffs[targetFy][u._month].admFee : APP_CONFIG.baseAdmissionFee), 10);
                             const admFeePaid = u.admFeePaid != null ? parseInt(u.admFeePaid, 10) : defaultAdmExpected;
                             s.admAmt += (isNaN(admFeePaid) ? 0 : admFeePaid);
-                            s.admRows.push(u);
+                            if (!supersededAdmIds.has(String(u.id).trim().toUpperCase())) {
+                                s.admRows.push(u);
+                            }
                         }
                     });
 
@@ -7997,9 +8102,11 @@
                         });
                     });
 
-                    // 3. Shortfalls & Unpaid Dues for ACTIVE users strictly from their month of admission (adScore) up to current month
+                    // 3. Shortfalls & Unpaid Dues for ACTIVE latest users strictly from their month of admission (adScore) up to current month
+                    const supersededReportIds = getSupersededUserIdsSet(users);
                     users.forEach(u => {
                         if (!u || !u.date || isUserCancelled(u)) return;
+                        if (supersededReportIds.has(String(u.id).trim().toUpperCase())) return;
                         const adInfo = parseAdmissionDateInfo(u.date, u._month, u._fy);
                         const adDay = adInfo.day;
                         const adMonthIdx = adInfo.monthIdx;
@@ -8378,7 +8485,9 @@
                 window.moduleContext.applyReadmissionValidationForUser(user);
             },
 
-            applyReadmissionValidationForUser: function(user) {
+            applyReadmissionValidationForUser: function(rawUser) {
+                const user = resolveToLatestUserRecord(rawUser);
+                window._selectedReadmissionUser = user;
                 const resBox = document.getElementById('validationResultBox');
                 const admissionTypeSelect = document.getElementById('admissionTypeSelect');
                 resBox.style.display = 'block';
@@ -8393,9 +8502,10 @@
 
                 const safeUserId = String(user.id).replace(/'/g, "\'");
                 const cleanDob = normalizeDobToDdMmYyyy(user.dob);
+                const nextReadmId = getNextReadmissionIdForUser(user);
 
                 if (currDate >= sixMonthsThreshold || isUserCancelled(user)) {
-                    // 6 months and above (or cancelled admission) -> ELIGIBLE for Re-Admission (Fee: ₹500 + Pro-Rata Training Fee)
+                    // 6 months and above (or cancelled admission) -> ELIGIBLE for Re-Admission
                     admissionTypeSelect.value = 'Re-Admission';
                     if (user.admissionCategory) document.getElementById('admissionCategory').value = user.admissionCategory;
                     if (user.trainingCategory) document.getElementById('trainingCategory').value = user.trainingCategory;
@@ -8415,8 +8525,9 @@
                     resBox.innerHTML = `
                         <span style="color:var(--success-green); font-weight:bold; font-size:1.05rem;">🎉 Congratulations! You are eligible for Re-Admission</span><br>
                         <span style="color:var(--text-muted); font-size:0.85rem;">Member details have been automatically fetched and pre-filled below.</span><br><br>
-                        <strong>Previous ID:</strong> ${user.id} | <strong>Name:</strong> ${user.fullName}<br>
-                        <strong>Prev. Registration Date:</strong> ${uDateInfo.formattedDate}<br>
+                        <strong>Previous ID:</strong> ${user.id} &nbsp;|&nbsp; <strong>New Re-Admission ID:</strong> <span style="color:var(--accent-orange); font-weight:900;">${nextReadmId}</span><br>
+                        <strong>Name:</strong> ${user.fullName}<br>
+                        <strong>Prev. Registration Date:</strong> ${uDateInfo.formattedDate} &nbsp;|&nbsp; <strong>New Re-Admission Date:</strong> <span style="color:var(--success-green); font-weight:800;">${currDateInfo.formattedDate}</span><br>
                         <div style="margin-top:0.85rem;">
                             <button type="button" class="btn secondary" style="padding:0.55rem 1rem; font-size:0.82rem; width:auto; border-color:var(--accent-orange); color:var(--accent-orange);" onclick="window.moduleContext.openProfileFromReadmission('${safeUserId}')">👤 View Profile (${user.id}) — Check Pending / History →</button>
                         </div>
@@ -9707,12 +9818,20 @@
                 dobInp.addEventListener('blur', (e) => { if(ageInp) ageInp.value = calculateAgeFromDate(e.target.value); });
             }
             if(dtInp) {
-                dtInp.addEventListener('input', fmtDt);
+                dtInp.addEventListener('input', (e) => {
+                    fmtDt(e);
+                    if (e.target.value.length === 10 && document.getElementById('admissionTypeSelect').value === 'Re-Admission' && window._selectedReadmissionUser) {
+                        window.moduleContext.applyReadmissionValidationForUser(window._selectedReadmissionUser);
+                    }
+                });
                 dtInp.addEventListener('blur', function() {
                     const v = this.value; if(v.length===10) {
                         const p = v.split('-'); const d = new Date(p[2], p[1]-1, p[0]);
                         const t = new Date(); t.setHours(0,0,0,0);
                         if(d > t) { showNotice("Future dates not allowed.", "error"); this.value=`${String(t.getDate()).padStart(2,'0')}-${String(t.getMonth()+1).padStart(2,'0')}-${t.getFullYear()}`; }
+                        if (document.getElementById('admissionTypeSelect').value === 'Re-Admission' && window._selectedReadmissionUser) {
+                            window.moduleContext.applyReadmissionValidationForUser(window._selectedReadmissionUser);
+                        }
                     }
                 });
             }
@@ -10181,8 +10300,11 @@
                 const phone = document.getElementById('primaryContact').value.trim();
                 if (admType === 'Re-Admission') {
                     const users = storage.get('revive_users_db', []);
-                    const prevUser = [...users].reverse().find(u => !isUserCancelled(u) && String(u.primaryContact) === phone);
-                    if (prevUser && prevUser.date) {
+                    const supIds = getSupersededUserIdsSet(users);
+                    const prevUser = window._selectedReadmissionUser
+                        ? resolveToLatestUserRecord(window._selectedReadmissionUser, users)
+                        : [...users].reverse().find(u => !supIds.has(String(u.id).trim().toUpperCase()) && !isUserCancelled(u) && String(u.primaryContact) === phone);
+                    if (prevUser && prevUser.date && !isUserCancelled(prevUser)) {
                         const uDateInfo = parseAdmissionDateInfo(prevUser.date, prevUser._month, prevUser._fy);
                         const prevD = new Date(uDateInfo.year, uDateInfo.monthIdx, uDateInfo.day);
                         const cDateInfo = parseAdmissionDateInfo(document.getElementById('dateOfAdmission').value);
@@ -10261,8 +10383,29 @@
                     return;
                 }
 
-                // Fix #2: Generate next Admission ID synced with Google Sheet & local DB
-                preAdmissionId = getNextAdmissionId();
+                const isReadmission = document.getElementById('admissionTypeSelect').value === 'Re-Admission';
+                let readmSourceUser = window._selectedReadmissionUser || null;
+                if (isReadmission) {
+                    const enteredPhone = document.getElementById('primaryContact').value.trim();
+                    const prevQueryVal = document.getElementById('prevPhoneInput') ? document.getElementById('prevPhoneInput').value.trim() : '';
+                    if (!readmSourceUser || (enteredPhone && String(readmSourceUser.primaryContact) !== enteredPhone)) {
+                        const allUsersList = storage.get('revive_users_db', []);
+                        const byPhoneOrQuery = allUsersList.filter(u =>
+                            u && (
+                                (enteredPhone && String(u.primaryContact) === enteredPhone) ||
+                                (prevQueryVal && String(u.id).toLowerCase().replace(/[^a-z0-9]/g, '') === prevQueryVal.toLowerCase().replace(/[^a-z0-9]/g, ''))
+                            )
+                        );
+                        if (byPhoneOrQuery.length > 0) {
+                            readmSourceUser = resolveToLatestUserRecord(byPhoneOrQuery[byPhoneOrQuery.length - 1], allUsersList);
+                            window._selectedReadmissionUser = readmSourceUser;
+                        }
+                    }
+                    preAdmissionId = readmSourceUser ? getNextReadmissionIdForUser(readmSourceUser) : getNextAdmissionId();
+                } else {
+                    // Fresh Admission sticks strictly to the main REV-XXXX admission series
+                    preAdmissionId = getNextAdmissionId();
+                }
 
                 // Fix #1: Calculate fee strictly from the month of admission
                 const monthTariff = window.moduleContext.getApplicableTariff(adDateObj, monthName, fyString);
@@ -10271,8 +10414,6 @@
                 } else {
                     document.getElementById('calc-promo-badge').innerHTML = ``;
                 }
-
-                const isReadmission = document.getElementById('admissionTypeSelect').value === 'Re-Admission';
                 const isPT = document.getElementById('trainingCategory').value === 'Personal Training';
                 const applicableMonthlyFee = parseInt(isPT ? monthTariff.ptFee : monthTariff.regFee, 10);
                 const baseAdmFee = isReadmission ? (APP_CONFIG.baseReadmissionFee || 500) : parseInt(monthTariff.admFee, 10);
@@ -10309,6 +10450,8 @@
                 currentMemberDetails = {
                     id: preAdmissionId,
                     date: adDateVal,
+                    previousAdmissionId: (isReadmission && readmSourceUser) ? readmSourceUser.id : '',
+                    previousAdmissionDate: (isReadmission && readmSourceUser) ? readmSourceUser.date : '',
                     admissionType: document.getElementById('admissionTypeSelect').value,
                     admissionCategory: document.getElementById('admissionCategory').value,
                     trainingCategory: document.getElementById('trainingCategory').value,
@@ -10431,8 +10574,14 @@
             });
 
             function finalizeRegistration() {
-                // Re-verify admission ID uniqueness right before saving
-                preAdmissionId = getNextAdmissionId();
+                // Re-verify admission ID right before saving:
+                // - For Re-Admission: generate against previous admission ID with re-admission count suffix (e.g. REV-0007-01, REV-0007-02)
+                // - For Fresh (New) Admission: stick strictly to the main REV-XXXX series
+                if (currentMemberDetails.admissionType === 'Re-Admission' && window._selectedReadmissionUser) {
+                    preAdmissionId = getNextReadmissionIdForUser(window._selectedReadmissionUser);
+                } else if (currentMemberDetails.admissionType !== 'Re-Admission') {
+                    preAdmissionId = getNextAdmissionId();
+                }
                 currentMemberDetails.id = preAdmissionId;
 
                 const admNow = new Date();
@@ -10478,8 +10627,8 @@
                 storage.set('revive_payments_db', payDb);
                 cloudSync.push('pushPayment', pData);
 
-                const currentCount = parseInt(preAdmissionId.split('-')[1], 10);
-                try { localStorage.setItem('revive_admission_count', String(currentCount)); } catch (e) {}
+                // Keep fresh admission counter synced to the highest base REV-XXXX number so Re-Admissions never reset the main series
+                syncAdmissionCounter();
                 
                 document.getElementById('sm-title').innerText = "Registration Complete!";
                 document.getElementById('generated-id').innerText = currentMemberDetails.id;
@@ -10527,6 +10676,7 @@
                     document.getElementById('reAdmissionSection').style.display = 'none';
                     document.getElementById('validationResultBox').style.display = 'none'; 
                     document.getElementById('prevPhoneInput').value = '';
+                    window._selectedReadmissionUser = null;
                     if (readmPrev) readmPrev.innerHTML = '';
                 }
                 window.moduleContext.checkDuplicatePhoneLive();
